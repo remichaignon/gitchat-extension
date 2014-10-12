@@ -10,39 +10,37 @@ if (menu.length) {
 
     // Add chat
     var chatContainer =
-        "<div id=\"discussion_bucket\" class=\"tab-content clearfix pull-request-tab-content is-visible\">" +
-        "  <div class=\"discussion-timeline pull-discussion-timeline\">" +
-        "    <div class=\"timeline-comment-wrapper timeline-new-comment\">" +
-        "      <form accept-charset=\"UTF-8\">" +
-        "        <div class=\"timeline-comment\">" +
-        "          <div class=\"previewable-comment-form write-selected\">" +
-        "            <div class=\"comment-form-head tabnav\">" +
+        "<div id=\"gitchat-container\" style=\"display: none;\">" +
+        "  <div id=\"discussion_bucket\" class=\"tab-content clearfix pull-request-tab-content is-visible\">" +
+        "    <div class=\"discussion-timeline pull-discussion-timeline\">" +
+        "      <div id=\"gitchat-message-list\"></div>" +
+        "      <div class=\"timeline-comment-wrapper timeline-new-comment\">" +
+        "        <form accept-charset=\"UTF-8\">" +
+        "          <div class=\"timeline-comment\">" +
+        "            <div class=\"previewable-comment-form write-selected\">" +
+        "              <div class=\"comment-form-head tabnav\">" +
+        "                <ul class=\"tabnav-tabs\">" +
+        "                  <li><a href=\"#\" class=\"tabnav-tab write-tab js-write-tab selected\">Write</a></li>" +
+        "                </ul>" +
+        "              </div>" +
+        "              <div class=\"write-content is-default\">" +
+        "                <textarea name=\"comment[body]\" tabindex=\"1\" id=\"new_comment_field\" placeholder=\"Leave a comment\" class=\"input-contrast comment-form-textarea\"></textarea>" +
+        "              </div>" +
         "            </div>" +
-        "            <div class=\"write-content is-default\">" +
-        "              <textarea name=\"comment[body]\" tabindex=\"1\" id=\"new_comment_field\" placeholder=\"Leave a comment\" class=\"input-contrast comment-form-textarea\"></textarea>" +
+        "            <div class=\"form-actions\">" +
+        "              <div id=\"partial-new-comment-form-actions\">" +
+        "                <button id=\"gitchat-submit\" type=\"submit\" class=\"button primary\" tabindex=\"2\">" +
+        "                  Comment" +
+        "                </button>" +
+        "              </div>" +
+        "            </div>" +
         "          </div>" +
-        "        </div>" +
+        "        </form>" +
         "      </div>" +
-        "      <div class=\"form-actions\">" +
-        "        <div id=\"partial-new-comment-form-actions\">" +
-        "          <button type=\"submit\" class=\"button primary\" tabindex=\"2\" data-disable-with=\"\" data-disable-invalid=\"\">" +
-        "            Comment" +
-        "          </button>" +
-        "        </div>" +
-        "      </form>" +
         "    </div>" +
         "  </div>" +
         "</div>";
-
-    var chatMarkup =
-        "<div id=\"gitchat-container\" class=\"\" style=\"display: none;\">" +
-        "    <header>Firebase Chat Demo</header>" +
-        "    <ul id=\"example-messages\" class=\"\"></ul>" +
-        "    <footer>" +
-        "        <input type=\"text\" id=\"messageInput\"  placeholder=\"Type a message...\">" +
-        "    </footer>" +
-        "</div>";
-    container.after(chatMarkup);
+    container.after(chatContainer);
 
     // Add button
     var chatButton =
@@ -54,68 +52,73 @@ if (menu.length) {
 
     // Add button handler
     $("#gitchat-button").on("click", function () {
+        // Hide regular content and show chat
         $("#js-repo-pjax-container").hide();
         $("#gitchat-container").show();
 
-        // CREATE A REFERENCE TO FIREBASE
+        // Select correct tab
+        $(".sunken-menu-group > li > a.selected").removeClass("selected");
+        $("#gitchat-button").addClass("selected");
+
+        // Create reference to firebase
         var messagesRef = new Firebase("https://git-chat.firebaseIO.com/" + repository);
 
-        // REGISTER DOM ELEMENTS
-        var messageField = $("#messageInput");
-        var messageList = $("#example-messages");
+        // Submit message
+        var submitMessage = function () {
+            var message = messageField.val();
 
-        // LISTEN FOR KEYPRESS EVENT
+            // Save message to firebase and reset field
+            messagesRef.push({ name:username, text:message });
+            messageField.val("");
+        };
+
+        // Submit message when pressing enter or clicking button
+        var messageField = $("#new_comment_field");
         messageField.keypress(function (e) {
             if (e.keyCode == 13) {
-                //FIELD VALUES
-                var message = messageField.val();
-
-                //SAVE DATA TO FIREBASE AND EMPTY FIELD
-                messagesRef.push({name:username, text:message});
-                messageField.val("");
+                submitMessage();
             }
+        });
+        var messageSubmit = $("#gitchat-submit");
+        messageSubmit.on("click", function (e) {
+            e.preventDefault();
+
+            submitMessage();
         });
 
         // Add a callback that is triggered for each chat message.
-        messagesRef.limit(10).on("child_added", function (snapshot) {
-            //GET DATA
+        messagesRef.limit(20).on("child_added", function (snapshot) {
+            // Get data
             var data = snapshot.val();
             var username = data.name || "anonymous";
             var message = data.text;
 
-            //CREATE ELEMENTS MESSAGE & SANITIZE TEXT
+            // Create message element
             var messageHTML =
                 "<div class=\"timeline-comment-wrapper\">" +
-                "  <div class=\"timeline-comment-header\">" +
-                "    <div class=\"timeline-comment-actions\">" +
-                "      <a class=\"timeline-comment-action delete-button\" title=\"Delete message\" aria-label=\"Delete message\">" +
-                "        <span class=\"octicon octicon-x\"></span>" +
-                "      </a>" +
+                "  <div class=\"comment timeline-comment is-task-list-enabled\">" +
+                "    <div class=\"timeline-comment-header\">" +
+                "      <div class=\"timeline-comment-header-text\">" +
+                "        <strong>" +
+                "          <a href=\"/" + username + "\" class=\"author\">" + username + "</a>" +
+                "        </strong>" +
+                "      </div>" +
                 "    </div>" +
-                "    <div class=\"timeline-comment-header-text\">" +
-                "      <strong>" +
-                "        <a href=\"/" + username + "\" class=\"author\">" + username + "</a>" +
-                "      </strong>" +
-                "    </div>" +
-                "  </div>" +
-                "  <div class=\"comment-content\">" +
-                "    <div class=\"edit-comment-hide\">" +
-                "      <div class=\"comment-body markdown-body markdown-format\">" +
-                "          <p>" + message + "</p>" +
+                "    <div class=\"comment-content\">" +
+                "      <div class=\"edit-comment-hide\">" +
+                "        <div class=\"comment-body markdown-body markdown-format\">" +
+                "            <p>" + message + "</p>" +
+                "        </div>" +
                 "      </div>" +
                 "    </div>" +
                 "  </div>" +
                 "</div>"
 
-            var messageElement = $("<li>");
-            var nameElement = $("<strong class=\"example-chat-username\"></strong>")
-            nameElement.text(username);
-            messageElement.text(message).prepend(nameElement);
+            // Add message element
+            var messageList = $("#gitchat-message-list");
+            messageList.append(messageHTML)
 
-            //ADD MESSAGE
-            messageList.append(messageElement)
-
-            //SCROLL TO BOTTOM OF MESSAGE LIST
+            // Scroll to bottom of message list
             messageList[0].scrollTop = messageList[0].scrollHeight;
         });
     });
