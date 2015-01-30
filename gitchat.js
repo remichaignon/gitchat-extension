@@ -1,4 +1,4 @@
-var menuSelector = "div.repository-sidebar > .sunken-menu.vertical-right.repo-nav > .sunken-menu-contents > .sunken-menu-group:first-child";
+var menuSelector = "div.repository-sidebar > .sunken-menu.repo-nav > .sunken-menu-group:first-child";
 var menu = $(menuSelector);
 
 if (menu.length) {
